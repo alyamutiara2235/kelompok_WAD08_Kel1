@@ -1,0 +1,2 @@
+Judul: Rancang Bangun Sistem Informasi Reservasi dan Pengelolaan Fasilitas Kampus Berbasis Web
+​Deskripsi: Pengembangan platform berbasis web yang berfungsi mengotomatisasi proses peminjaman ruangan dan fasilitas akademik. Sistem ini dilengkapi fitur pengecekan ketersediaan jadwal secara real-time untuk mencegah bentrok, pengajuan dokumen digital, serta modul verifikasi terpusat bagi pihak pengelola kampus.
