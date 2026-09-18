@@ -1,0 +1,29 @@
+# File Konfigurasi Sensitif (Sangat penting agar password Supabase tidak bocor)
+config.php
+.env
+*.local
+
+# Logs & Temporary Files
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node / Dependencies (Menjaga repo tetap ringan jika nanti pakai npm)
+node_modules
+dist
+dist-ssr
+
+# Editor Directories and Files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
