@@ -1,2 +1,38 @@
 Judul: Rancang Bangun Sistem Informasi Reservasi dan Pengelolaan Fasilitas Kampus Berbasis Web
 ​Deskripsi: Pengembangan platform berbasis web yang berfungsi mengotomatisasi proses peminjaman ruangan dan fasilitas akademik. Sistem ini dilengkapi fitur pengecekan ketersediaan jadwal secara real-time untuk mencegah bentrok, pengajuan dokumen digital, serta modul verifikasi terpusat bagi pihak pengelola kampus.
+
+
+Tampilan Kalender & Jadwal Interaktif: Menggunakan pustaka FullCalendar.js atau tabel HTML sederhana untuk menampilkan status ketersediaan ruangan secara real-time.
+
+Indikator Visual Status Ruangan: Menggunakan badge warna kontras (Hijau = Tersedia, Merah = Terpakai, Kuning = Pending) untuk memudahkan pengecekan.
+
+Formulir Pengajuan & Unggah Berkas: Menggunakan form input standar dan elemen <input type="file"> untuk mengunggah dokumen pendukung seperti KTM atau surat peminjaman.
+
+Alur Kerja & Implementasi Teknis Sistem:
+
+Sisi Pengguna (User):
+
+Autentikasi: Pengguna masuk ke sistem menggunakan akun kampus terdaftar.
+
+Pencarian & Cek Jadwal: Pengguna memilih lokasi/ruangan serta menentukan tanggal dan jam penggunaan.
+
+Validasi Otomatis (System):
+
+Jika jadwal yang dipilih sudah terisi, sistem secara otomatis menolak dan memunculkan notifikasi "Jadwal Bentrok".
+
+Jika jadwal kosong, pengguna diarahkan untuk melengkapi form pengajuan (keperluan, jumlah peserta, dan unggah dokumen pendukung).
+
+Penyimpanan: Data reservasi tersimpan ke database dengan status awal Pending.
+
+Sisi Administrator (Admin):
+
+Peninjauan (Review): Admin menerima notifikasi pengajuan baru dan memeriksa validitas dokumen beserta alasan peminjaman.
+
+Keputusan Pengesahan (Approval):
+
+Disetujui (Approved): Sistem memperbarui status menjadi Approved dan secara otomatis membuat (generate) bukti reservasi digital berbasis QR Code.
+
+Ditolak (Rejected): Admin menginput alasan penolakan, dan sistem mengubah status menjadi Ditolak serta mengirimkan notifikasi ke pengguna.
+
+Output Akhir:
+Pengguna dapat mengunduh atau mengakses bukti peminjaman dari dashboard mereka untuk ditunjukkan kepada petugas saat hari H.
