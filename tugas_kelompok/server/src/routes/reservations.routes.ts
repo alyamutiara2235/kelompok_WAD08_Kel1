@@ -3,7 +3,6 @@ import { Router } from 'express';
 const router = Router();
 
 
-
 router.post('/', async (req, res) => {
 
   const {
@@ -21,13 +20,11 @@ router.post('/', async (req, res) => {
     });
   }
 
-
   if (!tanggal) {
     return res.status(400).json({
       message: 'tanggal wajib diisi',
     });
   }
-
 
   if (!start_time) {
     return res.status(400).json({
@@ -47,13 +44,11 @@ router.post('/', async (req, res) => {
     });
   }
 
-
   if (typeof room_id !== 'string') {
     return res.status(400).json({
       message: 'room_id harus berupa string',
     });
   }
-
 
   if (typeof tanggal !== 'string') {
     return res.status(400).json({
@@ -61,20 +56,17 @@ router.post('/', async (req, res) => {
     });
   }
 
-
   if (typeof start_time !== 'string') {
     return res.status(400).json({
       message: 'start_time harus berupa string',
     });
   }
 
-
   if (typeof end_time !== 'string') {
     return res.status(400).json({
       message: 'end_time harus berupa string',
     });
   }
-
 
   if (typeof keperluan !== 'string') {
     return res.status(400).json({
@@ -97,14 +89,12 @@ router.post('/', async (req, res) => {
   const timeRegex =
     /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-
   if (!timeRegex.test(start_time)) {
     return res.status(400).json({
       message:
         'Format start_time harus HH:MM',
     });
   }
-
 
   if (!timeRegex.test(end_time)) {
     return res.status(400).json({
@@ -120,7 +110,6 @@ router.post('/', async (req, res) => {
         'end_time harus lebih besar dari start_time',
     });
   }
-
 
   if (keperluan.trim().length < 5) {
     return res.status(400).json({
@@ -141,6 +130,55 @@ router.post('/', async (req, res) => {
       keperluan,
       status: 'pending',
     },
+  });
+});
+
+
+router.get('/me', async (_req, res) => {
+
+
+  return res.status(200).json({
+    data: [],
+  });
+});
+
+
+
+router.get('/:id', async (req, res) => {
+
+  const { id } = req.params;
+
+
+  if (!id || id.trim() === '') {
+    return res.status(400).json({
+      message:
+        'ID reservasi wajib diisi',
+    });
+  }
+
+
+  return res.status(200).json({
+    data: null,
+  });
+});
+
+
+router.put('/:id/cancel', async (req, res) => {
+
+  const { id } = req.params;
+
+
+  if (!id || id.trim() === '') {
+    return res.status(400).json({
+      message:
+        'ID reservasi wajib diisi',
+    });
+  }
+
+
+  return res.status(200).json({
+    message:
+      'Reservasi berhasil dibatalkan',
   });
 });
 
