@@ -33,6 +33,7 @@ router.get('/:id', async (req, res) => {
 
   if (!id || id.trim() === '') {
     return res.status(400).json({
+
       message: 'ID gedung wajib diisi',
     });
   }

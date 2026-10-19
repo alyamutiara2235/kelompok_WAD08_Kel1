@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
     if (admins && admins.length > 0) {
       const notificationMessage = `Pengajuan baru: ${rooms?.nama_ruangan || 'Ruangan'} oleh ${profile?.nama || 'User'}, ${tanggal} pukul ${start_time}-${end_time}, menunggu tinjauan.`;
       
-      const notifInserts = admins.map((admin) => ({
+      const notifInserts = admins.map((admin: any) => ({
         user_id: admin.id,
         message: notificationMessage,
         is_read: false,
@@ -177,7 +177,7 @@ router.put('/:id/cancel', async (req, res) => {
     if (admins && admins.length > 0) {
       const cancelMessage = `${profile?.nama || 'User'} membatalkan pengajuan ${rooms?.nama_ruangan || 'Ruangan'}, ${reservation.tanggal} pukul ${reservation.start_time}-${reservation.end_time}.`;
       
-      const notifInserts = admins.map((admin) => ({
+      const notifInserts = admins.map((admin: any) => ({
         user_id: admin.id,
         message: cancelMessage,
         is_read: false,
