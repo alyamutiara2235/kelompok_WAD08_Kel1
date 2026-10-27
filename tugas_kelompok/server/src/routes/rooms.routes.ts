@@ -1,8 +1,9 @@
-import { Router } from 'express';
-import { supabase } from '../config/supabase'; 
+import { Router, Request, Response } from 'express';
+import { pool } from '../config/db';
+
 const router = Router();
 
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   const { search, gedung_id } = req.query;
 
   if (search !== undefined && typeof search !== 'string') {
@@ -14,34 +15,36 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    let query = supabase
-      .from('rooms')
-      .select(`
-        id,
-        nama_ruangan,
-        kapasitas,
-        fasilitas,
-        created_at,
-        gedung (
-          id,
-          nama_gedung
-        )
-      `);
+    let queryText = `
+      SELECT 
+        r.id, r.nama_ruangan, r.kapasitas, r.fasilitas, r.created_at,
+        json_build_object('id', g.id, 'nama_gedung', g.nama_gedung) AS gedung
+      FROM rooms r
+      JOIN gedung g ON r.gedung_id = g.id
+    `;
+    const queryParams: any[] = [];
+    const conditions: string[] = [];
 
     if (gedung_id) {
-      query = query.eq('gedung_id', gedung_id);
+      queryParams.push(gedung_id);
+      conditions.push(`r.gedung_id = $${queryParams.length}`);
     }
 
     if (search) {
-      query = query.ilike('nama_ruangan', `%${search}%`);
+      queryParams.push(`%${search}%`);
+      conditions.push(`r.nama_ruangan ILIKE $${queryParams.length}`);
     }
 
-    const { data: rooms, error } = await query.order('nama_ruangan', { ascending: true });
+    if (conditions.length > 0) {
+      queryText += ` WHERE ` + conditions.join(' AND ');
+    }
 
-    if (error) throw error;
+    queryText += ` ORDER BY r.nama_ruangan ASC;`;
+
+    const { rows } = await pool.query(queryText, queryParams);
 
     return res.status(200).json({
-      data: rooms || [],
+      data: rows || [],
     });
   } catch (err: any) {
     return res.status(500).json({
@@ -51,39 +54,30 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  if (!id || id.trim() === '') {
+  if (!id || String(id).trim() === '') {
     return res.status(400).json({ message: 'ID ruangan wajib diisi' });
   }
 
   try {
-    const { data: room, error } = await supabase
-      .from('rooms')
-      .select(`
-        id,
-        nama_ruangan,
-        kapasitas,
-        fasilitas,
-        created_at,
-        gedung (
-          id,
-          nama_gedung
-        )
-      `)
-      .eq('id', id)
-      .single();
+    const queryText = `
+      SELECT 
+        r.id, r.nama_ruangan, r.kapasitas, r.fasilitas, r.created_at,
+        json_build_object('id', g.id, 'nama_gedung', g.nama_gedung) AS gedung
+      FROM rooms r
+      JOIN gedung g ON r.gedung_id = g.id
+      WHERE r.id = $1
+    `;
+    const { rows } = await pool.query(queryText, [id]);
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ message: 'Ruangan tidak ditemukan' });
-      }
-      throw error;
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: 'Ruangan tidak ditemukan' });
     }
 
     return res.status(200).json({
-      data: room,
+      data: rows[0],
     });
   } catch (err: any) {
     return res.status(500).json({
@@ -93,11 +87,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.get('/:id/availability', async (req, res) => {
+router.get('/:id/availability', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { date, month } = req.query;
 
-  if (!id || id.trim() === '') {
+  if (!id || String(id).trim() === '') {
     return res.status(400).json({ message: 'ID ruangan wajib diisi' });
   }
 
@@ -114,39 +108,50 @@ router.get('/:id/availability', async (req, res) => {
   }
 
   if (date) {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}\$/;
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(date)) {
       return res.status(400).json({ message: 'Format date harus YYYY-MM-DD' });
     }
   }
 
   if (month) {
-    const monthRegex = /^\d{4}-\d{2}\$/;
+    const monthRegex = /^\d{4}-\d{2}$/;
     if (!monthRegex.test(month)) {
       return res.status(400).json({ message: 'Format month harus YYYY-MM' });
     }
   }
 
   try {
-    let query = supabase
-      .from('reservations')
-      .select('id, tanggal, start_time, end_time, status, keperluan')
-      .eq('room_id', id)
-      .in('status', ['pending', 'approved']); // Hanya ambil jadwal yang aktif booking-an nya
+    let rows;
 
     if (date) {
-      query = query.eq('tanggal', date);
-    } 
-    else if (month) {
-      query = query.gte('tanggal', `${month}-01`).lte('tanggal', `${month}-31`);
+      const queryText = `
+        SELECT id, tanggal, start_time, end_time, status, keperluan
+        FROM reservations
+        WHERE room_id = $1 
+          AND status IN ('pending', 'approved')
+          AND tanggal = $2::date
+        ORDER BY start_time ASC;
+      `;
+      const result = await pool.query(queryText, [id, date]);
+      rows = result.rows;
+    } else if (month) {
+      const startDate = `${month}-01`;
+      const endDate = `${month}-31`;
+      const queryText = `
+        SELECT id, tanggal, start_time, end_time, status, keperluan
+        FROM reservations
+        WHERE room_id = $1 
+          AND status IN ('pending', 'approved')
+          AND tanggal >= $2::date AND tanggal <= $3::date
+        ORDER BY start_time ASC;
+      `;
+      const result = await pool.query(queryText, [id, startDate, endDate]);
+      rows = result.rows;
     }
 
-    const { data: schedule, error } = await query.order('start_time', { ascending: true });
-
-    if (error) throw error;
-
     return res.status(200).json({
-      data: schedule || [],
+      data: rows || [],
     });
   } catch (err: any) {
     return res.status(500).json({

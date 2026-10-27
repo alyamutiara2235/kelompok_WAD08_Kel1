@@ -1,69 +1,74 @@
-import { Router } from 'express';
-import { createClient } from '@supabase/supabase-js';
+import { Router, Request, Response } from 'express';
+import { pool } from '../config/db';
+import bcrypt from 'bcrypt'; // Pastikan sudah menginstal bcrypt untuk hashing password
 
 const router = Router();
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
-
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: Request, res: Response) => {
   const { email_kampus, password, nama, nim } = req.body;
 
   try {
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: email_kampus,
-      password,
-    });
-
-    if (authError) return res.status(400).json({ error: authError.message });
-
-    if (authData.user) {
-      const { error: profileError } = await supabase.from('profiles').insert([
-        {
-          id: authData.user.id,
-          nama,
-          nim,
-          email_kampus,
-          role: 'user',
-        },
-      ]);
-
-      if (profileError) return res.status(400).json({ error: profileError.message });
+    // 1. Cek apakah email sudah terdaftar
+    const checkUser = await pool.query('SELECT * FROM profiles WHERE email_kampus = $1', [email_kampus]);
+    if (checkUser.rows.length > 0) {
+      return res.status(400).json({ error: 'Email kampus sudah terdaftar.' });
     }
 
-    return res.status(201).json({ message: 'Registrasi berhasil', user: authData.user });
+    // 2. Hash password menggunakan bcrypt
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // 3. Simpan data user langsung ke PostgreSQL
+    const insertQuery = `
+      INSERT INTO profiles (nama, nim, email_kampus, password, role, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, 'user', NOW(), NOW())
+      RETURNING id, nama, nim, email_kampus, role, created_at;
+    `;
+    
+    const result = await pool.query(insertQuery, [nama, nim, email_kampus, hashedPassword]);
+    const newUser = result.rows[0];
+
+    return res.status(201).json({ 
+      message: 'Registrasi berhasil', 
+      user: newUser 
+    });
+
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    console.error('Register Error:', err);
+    return res.status(500).json({ error: err.message || 'Terjadi kesalahan pada server' });
   }
 });
 
-
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   const { email_kampus, password } = req.body;
 
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email_kampus,
-      password,
-    });
+    // 1. Ambil data user berdasarkan email dari PostgreSQL
+    const result = await pool.query('SELECT * FROM profiles WHERE email_kampus = $1', [email_kampus]);
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Email atau password salah.' });
+    }
 
-    if (error) return res.status(400).json({ error: error.message });
+    const user = result.rows[0];
 
-   
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
+    // 2. Verifikasi password dengan bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: 'Email atau password salah.' });
+    }
+
+    // 3. Hapus password dari objek yang dikirim balik ke frontend demi keamanan
+    delete user.password;
 
     return res.status(200).json({
       message: 'Login berhasil',
-      token: data.session?.access_token,
-      user: profile,
+      user: user,
     });
+
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    console.error('Login Error:', err);
+    return res.status(500).json({ error: err.message || 'Terjadi kesalahan pada server' });
   }
 });
 
