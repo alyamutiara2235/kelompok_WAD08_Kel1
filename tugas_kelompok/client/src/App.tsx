@@ -1,57 +1,69 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthPage } from './pages/AuthPage';
 import { RoomBrowser } from './pages/RoomBrowser';
+import { MyReservations } from './pages/MyReservations';
+import { Notifications } from './pages/Notifications';
+import { Dashboard } from './pages/Dashboard';
 import { ReservationModal } from './components/ReservationModal';
+import { ReservationForm } from './components/ReservationForm';
 
-export function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+export const App: React.FC = () => {
+  const [isTestMode, setIsTestMode] = useState(false);
+
+  const [session, setSession] = useState<any>(isTestMode ? { user: { id: 'test-user-id' } } : null);
+  const [userRole, setUserRole] = useState<'user' | 'admin'>('user');
+  const [currentView, setCurrentView] = useState<'browser' | 'reservations' | 'notifications'>('browser');
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRoomId, setSelectedRoomId] = useState<string | undefined>();
-  const [apiStatus, setApiStatus] = useState('Memeriksa koneksi API...');
+  const [activeRoom, setActiveRoom] = useState<{ id: string; name: string } | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsAuthenticated(true);
-    }
+  const handleOpenModal = (roomId: string, roomName: string) => {
+    setActiveRoom({ id: roomId, name: roomName });
+    setIsModalOpen(true);
+  };
 
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data) => {
-        setApiStatus(data.message || 'RuangKampus API berjalan');
-      })
-      .catch(() => {
-        setApiStatus('Gagal terhubung ke server backend');
-      });
-  }, []);
-
-
-  if (!isAuthenticated) {
-    return <AuthPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  if (!session) {
+    return <AuthPage onLoginSuccess={() => setSession({ user: { id: 'user-logged-in' } })} />;
   }
 
+  const renderUserContent = () => {
+    switch (currentView) {
+      case 'reservations':
+        return <MyReservations onNavigate={(view) => setCurrentView(view)} />;
+      case 'notifications':
+        return <Notifications onNavigate={(view) => setCurrentView(view)} />;
+      case 'browser':
+      default:
+        return (
+          <RoomBrowser
+            onOpenModal={handleOpenModal}
+            onNavigate={(view) => setCurrentView(view)}
+          />
+        );
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div>
+      {userRole === 'admin' ? <Dashboard /> : renderUserContent()}
 
-      <div className="bg-slate-950 text-slate-400 text-[10px] text-center py-1 border-b border-slate-800">
-        Status API: <span className="text-emerald-400 font-medium">{apiStatus}</span>
-      </div>
-
-      <RoomBrowser
-        onOpenModal={(roomId) => {
-          setSelectedRoomId(roomId);
-          setIsModalOpen(true);
-        }}
-      />
-
-      <ReservationModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        roomId={selectedRoomId}
-      />
+      {activeRoom && (
+        <ReservationModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Ajukan reservasi"
+        >
+          <ReservationForm
+            roomId={activeRoom.id}
+            roomName={activeRoom.name}
+            selectedDate="24 September 2026"
+            onClose={() => setIsModalOpen(false)}
+            onSubmitSuccess={() => setIsModalOpen(false)}
+          />
+        </ReservationModal>
+      )}
     </div>
   );
-}
+};
 
 export default App;
