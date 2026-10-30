@@ -11,6 +11,9 @@ import gedungRoutes from './routes/gedung.routes';
 import roomsRoutes from './routes/rooms.routes';
 import reservationsRoutes from './routes/reservations.routes';
 import notificationRoutes from './routes/notifications.routes';
+import pgAuthRouter from './routes/pg-auth.routes';
+import pgReservationRouter from './routes/pg-reservations.routes';
+import { errorHandler } from './middleware/error';
 
 const app = express();
 
@@ -28,6 +31,9 @@ app.use('/api/gedung', gedungRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/reservations', reservationsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/pg/auth', pgAuthRouter);
+app.use('/api/pg/reservations', pgReservationRouter);
+app.use(errorHandler);
 
 app.listen(5000, () => {
   console.log(
