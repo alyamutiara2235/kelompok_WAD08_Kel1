@@ -29,6 +29,7 @@ interface Reservation {
 interface RoomBrowserProps {
   onOpenModal: (roomId: string, roomName: string) => void;
   onNavigate?: (view: 'browser' | 'reservations' | 'notifications') => void;
+  onLogout?: () => void; // Prop opsional untuk handle perpindahan ke halaman login
 }
 
 const TIME_SLOTS = [
@@ -44,7 +45,7 @@ const MONTH_NAMES = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-export const RoomBrowser: React.FC<RoomBrowserProps> = ({ onOpenModal, onNavigate }) => {
+export const RoomBrowser: React.FC<RoomBrowserProps> = ({ onOpenModal, onNavigate, onLogout }) => {
   const [gedungList, setGedungList] = useState<Gedung[]>([]);
   const [selectedGedungId, setSelectedGedungId] = useState<string>('');
 
@@ -58,8 +59,17 @@ export const RoomBrowser: React.FC<RoomBrowserProps> = ({ onOpenModal, onNavigat
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // State untuk nama user yang sedang login
+  const [userName, setUserName] = useState('Pengguna');
+
   useEffect(() => {
     fetchDataFromBackend();
+    
+    // Ambil nama user dari localStorage saat komponen dimuat
+    const savedName = localStorage.getItem('user_name');
+    if (savedName) {
+      setUserName(savedName);
+    }
   }, []);
 
   useEffect(() => {
@@ -154,6 +164,26 @@ export const RoomBrowser: React.FC<RoomBrowserProps> = ({ onOpenModal, onNavigat
   const daysCount = getDaysInMonth(currentYear, currentMonth);
   const startDayOffset = getFirstDayOfMonth(currentYear, currentMonth);
 
+  // Fungsi Logout
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_role');
+    if (onLogout) {
+      onLogout();
+    } else {
+      window.location.reload(); // Refresh otomatis jika prop onLogout tidak tersedia
+    }
+  };
+
+  // Membuat inisial huruf otomatis dari nama user
+  const userInitials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
   const getSlotStatus = (slotStart: string) => {
     const matched = reservations.find((r) => {
       const rDate = r.tanggal ? r.tanggal.split('T')[0] : '';
@@ -208,11 +238,24 @@ export const RoomBrowser: React.FC<RoomBrowserProps> = ({ onOpenModal, onNavigat
             </button>
           </nav>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-slate-200">Rizky Pratama</span>
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
-            RP
+
+        {/* Bagian Profil Dinamis & Tombol Keluar */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-200">{userName}</span>
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
+              {userInitials}
+            </div>
           </div>
+          
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Keluar akun"
+            className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+          >
+            🚪 Keluar
+          </button>
         </div>
       </header>
 
@@ -221,7 +264,6 @@ export const RoomBrowser: React.FC<RoomBrowserProps> = ({ onOpenModal, onNavigat
         
         {/* Kolom Kiri: Pilih Gedung & Pilih Ruangan */}
         <div className="lg:col-span-3 bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 border border-slate-700/60 flex flex-col gap-4 shadow-xl">
-          
           <div className="flex flex-col gap-2">
             <h2 className="font-bold text-sm text-slate-300">Pilih Gedung</h2>
             <div className="flex flex-wrap gap-1.5">

@@ -43,7 +43,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         body: JSON.stringify(payload),
       });
 
-      // Ambil respons sebagai teks terlebih dahulu untuk menghindari crash JSON
       const textResponse = await res.text();
       const data = textResponse ? JSON.parse(textResponse) : {};
 
@@ -51,7 +50,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         throw new Error(data.error || data.message || 'Terjadi kesalahan pada server');
       }
 
-      // Jika sukses (Login/Register berhasil)
       console.log('Berhasil:', data);
 
       if (isRegister) {
@@ -60,6 +58,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       } else {
         if (data.token) {
           localStorage.setItem('token', data.token);
+        }
+        // Menyimpan nama dan role user yang sedang login agar tampil dinamis
+        if (data.name || data.nama) {
+          localStorage.setItem('user_name', data.name || data.nama);
+        }
+        if (data.role) {
+          localStorage.setItem('user_role', data.role);
         }
         onLoginSuccess();
       }

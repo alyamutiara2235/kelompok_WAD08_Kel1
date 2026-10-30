@@ -19,6 +19,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/auth", pgAuthRouter);
 
 app.get('/api/health', (_req, res) => {
   return res.status(200).json({
